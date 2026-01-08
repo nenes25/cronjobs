@@ -54,6 +54,10 @@ class CronJobs extends Module
 
         $this->author = 'PrestaShop';
         $this->need_instance = true;
+        $this->ps_versions_compliancy = [
+            'min' => '9.0.0',
+            'max' => _PS_VERSION_,
+        ];
 
         $this->bootstrap = true;
         $this->display = 'view';
@@ -72,14 +76,14 @@ class CronJobs extends Module
         }
     }
 
-    public function install()
+    public function install() :bool
     {
-        Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::encrypt($this->getAdminDir()));
+        Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::hash($this->getAdminDir()));
         Configuration::updateValue('CRONJOBS_MODE', 'webservice');
         Configuration::updateValue('CRONJOBS_MODULE_VERSION', $this->version);
         Configuration::updateValue('CRONJOBS_WEBSERVICE_ID', 0);
 
-        $token = Tools::encrypt(Tools::getShopDomainSsl().time());
+        $token = Tools::hash(Tools::getShopDomainSsl().time());
         Configuration::updateGlobalValue('CRONJOBS_EXECUTION_TOKEN', $token);
 
         if (parent::install()) {
@@ -94,19 +98,19 @@ class CronJobs extends Module
         return false;
     }
 
-    protected function getAdminDir()
+    protected function getAdminDir() :string
     {
         return basename(_PS_ADMIN_DIR_);
     }
 
     protected function init()
     {
-        $new_admin_dir = (Tools::encrypt($this->getAdminDir()) != Configuration::get('CRONJOBS_ADMIN_DIR'));
+        $new_admin_dir = (Tools::hash($this->getAdminDir()) != Configuration::get('CRONJOBS_ADMIN_DIR'));
         $new_module_version = version_compare($this->version, Configuration::get('CRONJOBS_MODULE_VERSION'), '!=');
 
         if ($new_admin_dir || $new_module_version) {
             Configuration::updateValue('CRONJOBS_MODULE_VERSION', $this->version);
-            Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::encrypt($this->getAdminDir()));
+            Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::hash($this->getAdminDir()));
 
 
             if (Configuration::get('CRONJOBS_MODE') == 'webservice') {
@@ -117,7 +121,7 @@ class CronJobs extends Module
         }
     }
 
-    public function uninstall()
+    public function uninstall() :bool
     {
         Configuration::deleteByName('CRONJOBS_MODE');
 
@@ -128,7 +132,7 @@ class CronJobs extends Module
             parent::uninstall();
     }
 
-    public function installDb()
+    public function installDb() :bool
     {
         return Db::getInstance()->execute(
             'CREATE TABLE IF NOT EXISTS '._DB_PREFIX_.bqSQL($this->name).' (
@@ -151,12 +155,12 @@ class CronJobs extends Module
         );
     }
 
-    public function uninstallDb()
+    public function uninstallDb() :bool
     {
         return Db::getInstance()->execute('DROP TABLE IF EXISTS '._DB_PREFIX_.bqSQL($this->name));
     }
 
-    public function installTab()
+    public function installTab() :bool
     {
         $tab = new Tab();
         $tab->active = 1;
@@ -173,7 +177,7 @@ class CronJobs extends Module
         return $tab->add();
     }
 
-    public function uninstallTab()
+    public function uninstallTab() :bool
     {
         $id_tab = (int)Tab::getIdFromClassName('AdminCronJobs');
 
@@ -185,7 +189,7 @@ class CronJobs extends Module
         return false;
     }
 
-    public function hookActionModuleRegisterHookAfter($params)
+    public function hookActionModuleRegisterHookAfter($params) :void
     {
         $hook_name = $params['hook_name'];
 
@@ -196,7 +200,7 @@ class CronJobs extends Module
         }
     }
 
-    public function hookActionModuleUnRegisterHookAfter($params)
+    public function hookActionModuleUnRegisterHookAfter($params) :void
     {
         $hook_name = $params['hook_name'];
 
@@ -207,7 +211,7 @@ class CronJobs extends Module
         }
     }
 
-    public function hookBackOfficeHeader()
+    public function hookBackOfficeHeader() :void
     {
         if (Tools::getValue('configure') == $this->name) {
             if (version_compare(_PS_VERSION_, '1.6', '<') == true) {
@@ -219,7 +223,7 @@ class CronJobs extends Module
         }
     }
 
-    public function getContent()
+    public function getContent() :string
     {
         $output = null;
         CronJobsForms::init($this);
@@ -296,7 +300,7 @@ class CronJobs extends Module
         }
     }
 
-    public static function isActive($id_module)
+    public static function isActive($id_module) :bool
     {
         $module = Module::getInstanceByName('cronjobs');
 
@@ -390,7 +394,7 @@ class CronJobs extends Module
         return ($is_a_local_ip || $is_a_local_shop_domain);
     }
 
-    protected function renderForm($form, $form_values, $action, $cancel = false, $back_url = false, $update = false)
+    protected function renderForm($form, $form_values, $action, $cancel = false, $back_url = false, $update = false) :string
     {
         $helper = new HelperForm();
 
@@ -422,7 +426,7 @@ class CronJobs extends Module
         return $helper->generateForm($form);
     }
 
-    protected function renderTasksList()
+    protected function renderTasksList() :string
     {
         $helper = new HelperList();
 
