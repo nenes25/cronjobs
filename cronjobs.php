@@ -41,8 +41,6 @@ class CronJobs extends Module
     protected $_successes;
     protected $_warnings;
 
-    public $webservice_url = 'http://webcron.prestashop.com/crons';
-
     public function __construct()
     {
         $this->name = 'cronjobs';
@@ -74,17 +72,13 @@ class CronJobs extends Module
 
     public function install()
     {
-        Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::encrypt($this->getAdminDir()));
-        Configuration::updateValue('CRONJOBS_MODE', 'webservice');
+        Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::hash($this->getAdminDir()));
         Configuration::updateValue('CRONJOBS_MODULE_VERSION', $this->version);
-        Configuration::updateValue('CRONJOBS_WEBSERVICE_ID', 0);
 
-        $token = Tools::encrypt(Tools::getShopDomainSsl().time());
+        $token = Tools::hash(Tools::getShopDomainSsl().time());
         Configuration::updateGlobalValue('CRONJOBS_EXECUTION_TOKEN', $token);
 
         if (parent::install()) {
-            $this->updateWebservice(true);
-
             return $this->installDb() && $this->installTab() &&
                 $this->registerHook('actionModuleRegisterHookAfter') &&
                 $this->registerHook('actionModuleUnRegisterHookAfter') &&
@@ -101,28 +95,17 @@ class CronJobs extends Module
 
     protected function init()
     {
-        $new_admin_dir = (Tools::encrypt($this->getAdminDir()) != Configuration::get('CRONJOBS_ADMIN_DIR'));
+        $new_admin_dir = (Tools::hash($this->getAdminDir()) != Configuration::get('CRONJOBS_ADMIN_DIR'));
         $new_module_version = version_compare($this->version, Configuration::get('CRONJOBS_MODULE_VERSION'), '!=');
 
         if ($new_admin_dir || $new_module_version) {
             Configuration::updateValue('CRONJOBS_MODULE_VERSION', $this->version);
-            Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::encrypt($this->getAdminDir()));
-
-
-            if (Configuration::get('CRONJOBS_MODE') == 'webservice') {
-                $this->updateWebservice(true);
-                return $this->enableWebservice();
-            }
-            return $this->disableWebservice();
+            Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::hash($this->getAdminDir()));
         }
     }
 
     public function uninstall()
     {
-        Configuration::deleteByName('CRONJOBS_MODE');
-
-        $this->disableWebservice();
-
         return    $this->uninstallDb() &&
             $this->uninstallTab() &&
             parent::uninstall();
@@ -192,7 +175,6 @@ class CronJobs extends Module
         if ($hook_name == 'actionCronJob') {
             $module = $params['object'];
             $this->registerModuleHook($module->id);
-            $this->updateWebservice(Configuration::get('CRONJOBS_MODE') == 'webservice');
         }
     }
 
@@ -203,7 +185,6 @@ class CronJobs extends Module
         if ($hook_name == 'actionCronJob') {
             $module = $params['object'];
             $this->unregisterModuleHook($module->id);
-            $this->updateWebservice(Configuration::get('CRONJOBS_MODE') == 'webservice');
         }
     }
 
@@ -225,9 +206,7 @@ class CronJobs extends Module
         CronJobsForms::init($this);
         $this->checkLocalEnvironment();
 
-        if (Tools::isSubmit('submitCronJobs')) {
-            $this->postProcessConfiguration();
-        } elseif (Tools::isSubmit('submitNewCronJob')) {
+        if (Tools::isSubmit('submitNewCronJob')) {
             $submit_cron = $this->postProcessNewJob();
         } elseif (Tools::isSubmit('submitUpdateCronJob')) {
             $submit_cron = $this->postProcessUpdateJob();
@@ -271,7 +250,7 @@ class CronJobs extends Module
             $this->postProcessUpdateJobOneShot();
         } elseif (Tools::isSubmit('statuscronjobs')) {
             $this->postProcessUpdateJobStatus();
-        } elseif (defined('_PS_HOST_MODE_') == false) {
+        } else {
             $output = $output.$this->renderForm(CronJobsForms::getForm(), CronJobsForms::getFormValues(), 'submitCronJobs');
         }
 
@@ -367,7 +346,7 @@ class CronJobs extends Module
     {
         if ($this->isLocalEnvironment() == true) {
             $this->setWarningMessage('You are using the Cron jobs module on a local installation:
-                you will not be able to use the Basic mode or reliably call remote cron tasks in your current environment.
+                you may not be able to reliably call remote cron tasks in your current environment.
                 To use this module at its best, you should switch to an online installation.');
         }
     }
@@ -449,16 +428,6 @@ class CronJobs extends Module
             .'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
 
         return $helper->generateList($values, CronJobsForms::getTasksList());
-    }
-
-    protected function postProcessConfiguration()
-    {
-        if (Tools::isSubmit('cron_mode') == true) {
-            if (Tools::getValue('cron_mode') == 'advanced') {
-                return $this->disableWebservice();
-            }
-            return $this->enableWebservice();
-        }
     }
 
     protected function postProcessNewJob()
@@ -669,67 +638,6 @@ class CronJobs extends Module
     {
         $this->_warnings[] = $this->l($message);
         return false;
-    }
-
-    protected function enableWebservice()
-    {
-        Configuration::updateValue('CRONJOBS_MODE', 'webservice');
-        $this->updateWebservice(true);
-    }
-
-    protected function disableWebservice()
-    {
-        Configuration::updateValue('CRONJOBS_MODE', 'advanced');
-        $this->updateWebservice(false);
-    }
-
-    protected function updateWebservice($use_webservice)
-    {
-        if ($this->isLocalEnvironment() == true) {
-            return true;
-        }
-
-        $link = new Link();
-        $admin_folder = $this->getAdminDir();
-        if (version_compare(_PS_VERSION_, '1.7', '<') == true) {
-            $path = Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.$admin_folder;
-            $cron_url = $path.'/'.$link->getAdminLink('AdminCronJobs', false);
-        } else {
-            $cron_url = $link->getAdminLink('AdminCronJobs', false);
-        }
-
-        $webservice_id = Configuration::get('CRONJOBS_WEBSERVICE_ID') ? '/'.Configuration::get('CRONJOBS_WEBSERVICE_ID') : null;
-
-        $data = array(
-            'callback' => $link->getModuleLink($this->name, 'callback'),
-            'domain' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__,
-            'cronjob' => $cron_url.'&token='.Configuration::getGlobalValue('CRONJOBS_EXECUTION_TOKEN'),
-            'cron_token' => Configuration::getGlobalValue('CRONJOBS_EXECUTION_TOKEN'),
-            'active' => (bool)$use_webservice
-        );
-
-        $context_options = array('http' => array(
-            'method' => (is_null($webservice_id) == true) ? 'POST' : 'PUT',
-            'header'  => 'Content-type: application/x-www-form-urlencoded',
-            'content' => http_build_query($data)
-        ));
-
-        $result = Tools::file_get_contents($this->webservice_url.$webservice_id, false, stream_context_create($context_options));
-
-        if ($result != false) {
-            Configuration::updateValue('CRONJOBS_WEBSERVICE_ID', (int)$result);
-        }
-
-        if (((Tools::isSubmit('install') == true) || (Tools::isSubmit('reset') == true)) && ((bool)$result == false)) {
-            return true;
-        } elseif (((Tools::isSubmit('install') == false) || (Tools::isSubmit('reset') == false)) && ((bool)$result == false)) {
-            return $this->setErrorMessage('An error occurred while trying to contact PrestaShop\'s cron tasks webservice.');
-        }
-
-        if ((bool)$use_webservice == true) {
-            return $this->setSuccessMessage('Your cron tasks have been successfully added to PrestaShop\'s cron tasks webservice.');
-        }
-        return $this->setSuccessMessage('Your cron tasks have been successfully registered using the Advanced mode.');
     }
 
     protected function postProcessDeleteCronJob($id_cronjob)
