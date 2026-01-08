@@ -52,7 +52,7 @@ class CronJobs extends Module
 
         $this->controllers = array('callback');
 
-        $this->author = 'PrestaShop';
+        $this->author = 'PrestaShop / hhennes';
         $this->need_instance = true;
 
         $this->bootstrap = true;
