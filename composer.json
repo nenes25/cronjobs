@@ -1,19 +1,31 @@
 {
-  "name": "prestashop/cronjobs",
-  "description": "PrestaShop module cronjobs",
-  "homepage": "https://github.com/PrestaShop/cronjobs",
+  "name": "hhennes/prestashop-cronjobs",
+  "description": "Fork of legacy PrestaShop module cronjobs",
+  "homepage": "https://github.com/nenes25/cronjobs",
   "license": "AFL - Academic Free License (AFL 3.0)",
   "authors": [
     {
       "name": "PrestaShop SA",
       "email": "contact@prestashop.com"
+    },
+    {
+      "name": "Hervé Hennes",
+      "email": "contact@h-hennes.fr"
     }
   ],
   "require": {
-    "php": ">=5.3.2"
+    "php": ">=8.1"
   },
   "config": {
     "preferred-install": "dist"
   },
-  "type": "prestashop-module"
+  "type": "prestashop-module",
+  "require-dev": {
+    "prestashop/php-dev-tools": "^4.3"
+  },
+  "scripts": {
+    "set-license-header": [
+      "@php ./vendor/bin/header-stamp --license=\"assets/afl.txt\" --exclude=\".github,node_modules,vendor\""
+    ]
+  }
 }

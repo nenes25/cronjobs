@@ -1,7 +1,7 @@
 <?php
 
 global $_MODULE;
-$_MODULE = array();
+$_MODULE = [];
 
 $_MODULE['<{cronjobs}prestashop>cronjobsforms_c9cc8cce247e49bae79f15173ce97354'] = 'Save';
 $_MODULE['<{cronjobs}prestashop>cronjobsforms_d4169d52732e9ae8df56d2cbcad81a94'] = 'Task description';
@@ -50,6 +50,5 @@ $_MODULE['<{cronjobs}prestashop>configure_27c1f598c2b2b0a8e64424d257e8b398'] = '
 $_MODULE['<{cronjobs}prestashop>configure_c22203a97c7dd88dd68d1e864d46ee0c'] = 'Originally, cron is a Unix system tool that provides time-based job scheduling: you can create many cron jobs, which are then run periodically at fixed times, dates, or intervals.';
 $_MODULE['<{cronjobs}prestashop>configure_d24ca73e026491b9610193f36d5edec8'] = 'This module provides you with a cron-like tool: you can create jobs which will call a given set of secure URLs to your PrestaShop store, thus triggering updates and other automated tasks.';
 $_MODULE['<{cronjobs}prestashop>task_b43ff85c4fc17955aa3ba90827d65430'] = 'Do not forget to use an absolute URL in the target link to make it valid! The link also has to be on the same domain as the shop.';
-
 
 return $_MODULE;

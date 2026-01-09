@@ -1,0 +1,31 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Create Release Archive
+      run: |
+        zip -r cronjobs-${{ github.ref_name }}.zip . \
+          -x "*.git*" \
+          -x "*node_modules/*" \
+          -x "*.github/*" \
+          -x "*.php-cs-fixer.php" \
+          -x "*.editorconfig"
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: cronjobs-${{ github.ref_name }}.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
