@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -17,7 +18,6 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
-
 global $_MODULE;
 $_MODULE = [];
 $_MODULE['<{cronjobs}prestashop>configure_27c1f598c2b2b0a8e64424d257e8b398'] = 'Que fait ce module ?';
