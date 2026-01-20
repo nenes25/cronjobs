@@ -28,25 +28,38 @@ if (defined('_PS_ADMIN_DIR_') === false) {
 
 require_once dirname(__FILE__) . '/classes/CronJobsForms.php';
 
+/**
+ * CronJobs module class for managing scheduled tasks
+ */
 class CronJobs extends Module
 {
+    /**
+     * Constant to indicate a task should run at each interval
+     */
     public const EACH = -1;
 
+    /**
+     * @var array Success messages
+     */
     protected $_successes;
+
+    /**
+     * @var array Warning messages
+     */
     protected $_warnings;
 
+    /**
+     * Constructor
+     */
     public function __construct()
     {
         $this->name = 'cronjobs';
         $this->tab = 'administration';
-        $this->version = '1.4.0';
+        $this->version = '2.0.1';
         $this->module_key = '';
-
         $this->controllers = ['callback'];
-
         $this->author = 'PrestaShop / hhennes';
         $this->need_instance = true;
-
         $this->bootstrap = true;
         $this->display = 'view';
 
@@ -64,7 +77,12 @@ class CronJobs extends Module
         }
     }
 
-    public function install()
+    /**
+     * Module installation
+     *
+     * @return bool
+     */
+    public function install(): bool
     {
         Configuration::updateValue('CRONJOBS_ADMIN_DIR', Tools::hash($this->getAdminDir()));
         Configuration::updateValue('CRONJOBS_MODULE_VERSION', $this->version);
@@ -82,11 +100,21 @@ class CronJobs extends Module
         return false;
     }
 
-    protected function getAdminDir()
+    /**
+     * Get admin dir
+     *
+     * @return string
+     */
+    protected function getAdminDir(): string
     {
         return basename(_PS_ADMIN_DIR_);
     }
 
+    /**
+     * Initialize module configuration and check for updates
+     *
+     * @return void
+     */
     protected function init()
     {
         $new_admin_dir = (Tools::hash($this->getAdminDir()) != Configuration::get('CRONJOBS_ADMIN_DIR'));
@@ -98,14 +126,24 @@ class CronJobs extends Module
         }
     }
 
-    public function uninstall()
+    /**
+     * Module uninstallation
+     *
+     * @return bool
+     */
+    public function uninstall(): bool
     {
         return $this->uninstallDb()
             && $this->uninstallTab()
             && parent::uninstall();
     }
 
-    public function installDb()
+    /**
+     * Create module database tables
+     *
+     * @return bool
+     */
+    public function installDb(): bool
     {
         return Db::getInstance()->execute(
             'CREATE TABLE IF NOT EXISTS ' . _DB_PREFIX_ . bqSQL($this->name) . ' (
@@ -128,12 +166,27 @@ class CronJobs extends Module
         );
     }
 
-    public function uninstallDb()
+    /**
+     * Drop module database tables
+     *
+     * @return bool True if successful, false otherwise
+     */
+    /**
+     * Drop module database tables
+     *
+     * @return bool True if successful, false otherwise
+     */
+    public function uninstallDb(): bool
     {
         return Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . bqSQL($this->name));
     }
 
-    public function installTab()
+    /**
+     * Install module tab
+     *
+     * @return bool True if successful, false otherwise
+     */
+    public function installTab(): bool
     {
         $tab = new Tab();
         $tab->active = 1;
@@ -150,6 +203,11 @@ class CronJobs extends Module
         return $tab->add();
     }
 
+    /**
+     * Uninstall module tab
+     *
+     * @return bool True if successful, false otherwise
+     */
     public function uninstallTab()
     {
         $id_tab = (int) Tab::getIdFromClassName('AdminCronJobs');
@@ -163,7 +221,14 @@ class CronJobs extends Module
         return false;
     }
 
-    public function hookActionModuleRegisterHookAfter($params)
+    /**
+     * Hook called after a module registers a hook
+     *
+     * @param array $params Hook parameters
+     *
+     * @return void
+     */
+    public function hookActionModuleRegisterHookAfter(array $params): void
     {
         $hook_name = $params['hook_name'];
 
@@ -173,7 +238,14 @@ class CronJobs extends Module
         }
     }
 
-    public function hookActionModuleUnRegisterHookAfter($params)
+    /**
+     * Hook called after a module unregisters a hook
+     *
+     * @param array $params Hook parameters
+     *
+     * @return void
+     */
+    public function hookActionModuleUnRegisterHookAfter(array $params): void
     {
         $hook_name = $params['hook_name'];
 
@@ -183,19 +255,24 @@ class CronJobs extends Module
         }
     }
 
-    public function hookBackOfficeHeader()
+    /**
+     * Hook for adding CSS/JS to back office header
+     *
+     * @return void
+     */
+    public function hookBackOfficeHeader(): void
     {
         if (Tools::getValue('configure') == $this->name) {
-            if (version_compare(_PS_VERSION_, '1.6', '<') == true) {
-                $this->context->controller->addCSS($this->_path . 'views/css/bootstrap.min.css');
-                $this->context->controller->addCSS($this->_path . 'views/css/configure-ps-15.css');
-            } else {
-                $this->context->controller->addCSS($this->_path . 'views/css/configure-ps-16.css');
-            }
+            $this->context->controller->addCSS($this->_path . 'views/css/admin/configure.css');
         }
     }
 
-    public function getContent()
+    /**
+     * Get module configuration page content
+     *
+     * @return string HTML content
+     */
+    public function getContent(): string
     {
         $output = null;
         CronJobsForms::init($this);
@@ -252,7 +329,12 @@ class CronJobs extends Module
         return $output . $this->renderTasksList();
     }
 
-    public function sendCallback()
+    /**
+     * Send callback response and close connection before executing cron tasks
+     *
+     * @return void
+     */
+    public function sendCallback(): void
     {
         ignore_user_abort(true);
         set_time_limit(0);
@@ -270,7 +352,14 @@ class CronJobs extends Module
         }
     }
 
-    public static function isActive($id_module)
+    /**
+     * Check if a module's cron job is active
+     *
+     * @param int $id_module Module ID
+     *
+     * @return bool True if active, false otherwise
+     */
+    public static function isActive($id_module): bool
     {
         $module = Module::getInstanceByName('cronjobs');
 
@@ -284,7 +373,13 @@ class CronJobs extends Module
     }
 
     /**
-     * $taks should be a valid URL
+     * Add a one-shot cron task
+     *
+     * @param string $task Valid URL task
+     * @param string $description Task description
+     * @param array $execution Execution schedule (hour, day, month, day_of_week)
+     *
+     * @return bool True if successful, false otherwise
      */
     public static function addOneShotTask($task, $description, $execution = [])
     {
@@ -338,7 +433,12 @@ class CronJobs extends Module
         return false;
     }
 
-    protected function checkLocalEnvironment()
+    /**
+     * Check if running in a local environment and display warning
+     *
+     * @return void
+     */
+    protected function checkLocalEnvironment(): void
     {
         if ($this->isLocalEnvironment() == true) {
             $this->setWarningMessage('You are using the Cron jobs module on a local installation:
@@ -348,9 +448,11 @@ class CronJobs extends Module
     }
 
     /**
-     * @return bool
+     * Check if the environment is a local installation
+     *
+     * @return bool True if local, false otherwise
      */
-    protected function isLocalEnvironment()
+    protected function isLocalEnvironment(): bool
     {
         if (isset($_SERVER['REMOTE_ADDR']) === false) {
             return true;
@@ -365,7 +467,19 @@ class CronJobs extends Module
         return $is_a_local_ip || $is_a_local_shop_domain;
     }
 
-    protected function renderForm($form, $form_values, $action, $cancel = false, $back_url = false, $update = false)
+    /**
+     * Render a configuration form
+     *
+     * @param array $form Form structure
+     * @param array $form_values Form values
+     * @param string $action Submit action name
+     * @param bool $cancel Show cancel button
+     * @param string|bool $back_url Back URL
+     * @param bool $update Is update mode
+     *
+     * @return string HTML form content
+     */
+    protected function renderForm($form, $form_values, $action, $cancel = false, $back_url = false, $update = false): string
     {
         $helper = new HelperForm();
 
@@ -397,7 +511,12 @@ class CronJobs extends Module
         return $helper->generateForm($form);
     }
 
-    protected function renderTasksList()
+    /**
+     * Render the list of custom cron tasks
+     *
+     * @return string HTML list content
+     */
+    protected function renderTasksList(): string
     {
         $helper = new HelperList();
 
@@ -426,7 +545,12 @@ class CronJobs extends Module
         return $helper->generateList($values, CronJobsForms::getTasksList());
     }
 
-    protected function postProcessNewJob()
+    /**
+     * Process the creation of a new cron job
+     *
+     * @return bool True if successful, false otherwise
+     */
+    protected function postProcessNewJob(): bool
     {
         if ($this->isNewJobValid() == true) {
             $description = Db::getInstance()->escape(Tools::getValue('description'));
@@ -461,6 +585,11 @@ class CronJobs extends Module
         return false;
     }
 
+    /**
+     * Process the update of an existing cron job
+     *
+     * @return bool True if successful, false otherwise
+     */
     protected function postProcessUpdateJob()
     {
         if (Tools::isSubmit('id_cronjob') == false) {
@@ -474,9 +603,6 @@ class CronJobs extends Module
         $month = (int) Tools::getValue('month');
         $day_of_week = (int) Tools::getValue('day_of_week');
         $id_cronjob = (int) Tools::getValue('id_cronjob');
-
-        // $id_shop = (int)Context::getContext()->shop->id;
-        // $id_shop_group = (int)Context::getContext()->shop->id_shop_group;
 
         $query = 'UPDATE ' . _DB_PREFIX_ . bqSQL($this->name) . '
             SET `description` = \'' . $description . '\',
@@ -494,6 +620,11 @@ class CronJobs extends Module
         return $this->setErrorMessage('The task has not been updated');
     }
 
+    /**
+     * Add cron tasks for newly installed modules
+     *
+     * @return bool|void False if no crons found, void otherwise
+     */
     public function addNewModulesTasks()
     {
         $crons = Hook::getHookModuleExecList('actionCronJob');
@@ -532,6 +663,11 @@ class CronJobs extends Module
         }
     }
 
+    /**
+     * Toggle the one-shot status of a cron job
+     *
+     * @return bool False if no ID submitted, void otherwise (redirects)
+     */
     protected function postProcessUpdateJobOneShot()
     {
         if (Tools::isSubmit('id_cronjob') == false) {
@@ -539,8 +675,6 @@ class CronJobs extends Module
         }
 
         $id_cronjob = (int) Tools::getValue('id_cronjob');
-        // $id_shop = (int)Context::getContext()->shop->id;
-        // $id_shop_group = (int)Context::getContext()->shop->id_shop_group;
 
         Db::getInstance()->execute('UPDATE ' . _DB_PREFIX_ . bqSQL($this->name) . '
             SET `one_shot` = IF (`one_shot`, 0, 1) WHERE `id_cronjob` = \'' . (int) $id_cronjob . '\'');
@@ -550,6 +684,11 @@ class CronJobs extends Module
             . '&token=' . Tools::getAdminTokenLite('AdminModules'));
     }
 
+    /**
+     * Toggle the active status of a cron job
+     *
+     * @return bool False if no ID submitted, void otherwise (redirects)
+     */
     protected function postProcessUpdateJobStatus()
     {
         if (Tools::isSubmit('id_cronjob') == false) {
@@ -557,8 +696,6 @@ class CronJobs extends Module
         }
 
         $id_cronjob = (int) Tools::getValue('id_cronjob');
-        // $id_shop = (int)Context::getContext()->shop->id;
-        // $id_shop_group = (int)Context::getContext()->shop->id_shop_group;
 
         Db::getInstance()->execute('UPDATE ' . _DB_PREFIX_ . bqSQL($this->name) . '
             SET `active` = IF (`active`, 0, 1) WHERE `id_cronjob` = \'' . (int) $id_cronjob . '\'');
@@ -568,6 +705,11 @@ class CronJobs extends Module
             . '&token=' . Tools::getAdminTokenLite('AdminModules'));
     }
 
+    /**
+     * Validate new cron job data from form submission
+     *
+     * @return bool True if valid, false otherwise
+     */
     protected function isNewJobValid()
     {
         if ((Tools::isSubmit('description') == true)
@@ -591,6 +733,16 @@ class CronJobs extends Module
         return false;
     }
 
+    /**
+     * Validate cron job frequency parameters
+     *
+     * @param int $hour Hour (0-23 or -1 for each)
+     * @param int $day Day of month (1-31 or -1 for each)
+     * @param int $month Month (1-12 or -1 for each)
+     * @param int $day_of_week Day of week (0-6 or -1 for each)
+     *
+     * @return bool True if valid, false otherwise
+     */
     protected function isFrequencyValid($hour, $day, $month, $day_of_week)
     {
         $success = true;
@@ -611,6 +763,13 @@ class CronJobs extends Module
         return $success;
     }
 
+    /**
+     * Validate that a task URL belongs to the current shop domain
+     *
+     * @param string $task Task URL to validate
+     *
+     * @return bool True if valid, false otherwise
+     */
     protected static function isTaskURLValid($task)
     {
         $task = urlencode($task);
@@ -620,6 +779,13 @@ class CronJobs extends Module
         return (strpos($task, $shop_url) === 0) || (strpos($task, $shop_url_ssl) === 0);
     }
 
+    /**
+     * Add an error message to the errors array
+     *
+     * @param string $message Error message to add
+     *
+     * @return bool Always returns false
+     */
     protected function setErrorMessage($message)
     {
         $this->_errors[] = $this->l($message);
@@ -627,6 +793,13 @@ class CronJobs extends Module
         return false;
     }
 
+    /**
+     * Add a success message to the successes array
+     *
+     * @param string $message Success message to add
+     *
+     * @return bool Always returns true
+     */
     protected function setSuccessMessage($message)
     {
         $this->_successes[] = $this->l($message);
@@ -634,6 +807,13 @@ class CronJobs extends Module
         return true;
     }
 
+    /**
+     * Add a warning message to the warnings array
+     *
+     * @param string $message Warning message to add
+     *
+     * @return bool Always returns false
+     */
     protected function setWarningMessage($message)
     {
         $this->_warnings[] = $this->l($message);
@@ -641,6 +821,13 @@ class CronJobs extends Module
         return false;
     }
 
+    /**
+     * Process the deletion of a cron job
+     *
+     * @param int $id_cronjob Cron job ID
+     *
+     * @return void Redirects to module configuration page
+     */
     protected function postProcessDeleteCronJob($id_cronjob)
     {
         $id_cronjob = Tools::getValue('id_cronjob');
@@ -672,6 +859,13 @@ class CronJobs extends Module
             . '&token=' . Tools::getAdminTokenLite('AdminModules'));
     }
 
+    /**
+     * Register a module's cron hook in the database
+     *
+     * @param int $id_module Module ID
+     *
+     * @return bool True if successful, false otherwise
+     */
     protected function registerModuleHook($id_module)
     {
         $module = Module::getInstanceById($id_module);
@@ -695,6 +889,13 @@ class CronJobs extends Module
         return Db::getInstance()->execute($query);
     }
 
+    /**
+     * Unregister a module's cron hook from the database
+     *
+     * @param int $id_module Module ID
+     *
+     * @return bool True if successful, false otherwise
+     */
     protected function unregisterModuleHook($id_module)
     {
         $table_name = _DB_PREFIX_ . bqSQL($this->name);
